@@ -7,7 +7,19 @@ import "./AccuCoin.sol";
 contract Quiz is Ownable {
     AccuCoin public token;
     address public treasury;
-    mapping(address => uint) public tokens;
+    //uint256 public questionID;
+    struct ClaimState {
+        uint256 initiateTime;
+        uint256 initiateCount;
+    }
+    struct QuestionState {
+        uint256 questionID;
+        bool visible;
+    }
+    uint256 public maturityPeriod = 4; //4hrs
+    mapping(address => ClaimState) private UserClaimStates;
+    mapping(address => QuestionState) private QuestionToUser;
+    mapping(address => uint) public UserTokensBalance;
     mapping(address => uint) public tokensInvested;
     mapping(address => bool) public quizAnswered;
 
@@ -23,19 +35,47 @@ contract Quiz is Ownable {
         address _player,
         uint256 _amount
     ) external payable onlyOwner {
+        ClaimState storage claimState = UserClaimStates[_player];
+
         require(_amount >= 1, "Quiz: Insufficient payment");
         require(_player != address(0), "Quiz: Invalid address");
+        if (claimState.initiateCount == 0) {
+            claimState.initiateTime = block.timestamp;
+            claimState.initiateCount += 1;
+            token.transfer(_player, _amount);
+            UserTokensBalance[_player] += _amount;
+        } else {
+            require(
+                ((block.timestamp - claimState.initiateTime) / 1 hours) >=
+                    maturityPeriod,
+                "Quiz: required time not elapsed"
+            );
+            claimState.initiateTime = block.timestamp;
+            claimState.initiateCount += 1;
 
-        token.transfer(_player, _amount);
-        tokens[_player] += _amount;
+            token.transfer(_player, _amount);
+            UserTokensBalance[_player] += _amount;
+        }
+
         emit TokenTransfer(msg.sender, _player, _amount);
     }
 
-    function participateInQuiz(uint256 _investAmount) public payable {
+    function participateInQuiz(
+        uint256 _investAmount,
+        uint256 _questionID
+    ) public payable {
+        QuestionState storage questionState = QuestionToUser[msg.sender];
         require(_investAmount >= 1, "Quiz: Insufficient payment");
+        require(
+            questionState.visible == false,
+            "Quiz: question already attended"
+        );
+
         token.transferFrom(msg.sender, treasury, _investAmount);
-        tokens[msg.sender] -= _investAmount;
+        UserTokensBalance[msg.sender] -= _investAmount;
         tokensInvested[msg.sender] += _investAmount;
+        questionState.questionID = _questionID;
+        questionState.visible = true;
         emit TokenTransfer(msg.sender, treasury, _investAmount);
     }
 
@@ -47,7 +87,7 @@ contract Quiz is Ownable {
             uint256 tokensReward = tokensInvested[msg.sender] *
                 _rewardMultiplier;
             token.transferFrom(treasury, msg.sender, tokensReward);
-            tokens[msg.sender] += tokensReward;
+            UserTokensBalance[msg.sender] += tokensReward;
             emit TokenTransfer(treasury, msg.sender, tokensReward);
         }
         quizAnswered[msg.sender] = true;
@@ -58,6 +98,6 @@ contract Quiz is Ownable {
     }
 
     function checkTokens() public view returns (uint) {
-        return tokens[msg.sender];
+        return UserTokensBalance[msg.sender];
     }
 }
