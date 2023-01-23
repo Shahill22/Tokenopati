@@ -1,0 +1,14 @@
+{
+  "name": "tokenopati",
+  "version": "1.0.0",
+  "description": "Token based quiz game",
+  "main": "truffle-config.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "shahil",
+  "license": "ISC"
+}
