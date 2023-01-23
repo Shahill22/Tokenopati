@@ -1,4 +1,10 @@
-/node_modules
+build/
+node_modules/
+.DS_Store
+.zos.session
+.openzeppelin/.session
+env/
 .env
-/logs
-*.log
+bin/
+solc
+.vscode
