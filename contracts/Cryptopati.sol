@@ -20,10 +20,13 @@ contract Cryptopati is Ownable, Pausable {
         uint256 timeDuration;
         uint256 fixedReward;
         bool exist;
+        bool unlocked;
     }
     mapping(string => Question) private _questions; // Question ID => Question {}
 
     mapping(address => uint256) public userLastClaim; // Timestamp at which user claimed token last
+
+    mapping(address => uint256) public userCommitAmount;
 
     /* Events */
     event QuestionAdd(string questionId);
@@ -139,11 +142,9 @@ contract Cryptopati is Ownable, Pausable {
      * @notice This method is used to check if a question exist
      * @param questionId ID of the question
      */
-    function questionExist(string calldata questionId)
-        public
-        view
-        returns (bool)
-    {
+    function questionExist(
+        string calldata questionId
+    ) public view returns (bool) {
         return _questions[questionId].exist;
     }
 
@@ -151,12 +152,9 @@ contract Cryptopati is Ownable, Pausable {
      * @notice This method is used to get question details
      * @param questionId ID of the question
      */
-    function getQuestion(string calldata questionId)
-        external
-        view
-        onlyValid(questionId)
-        returns (Question memory)
-    {
+    function getQuestion(
+        string calldata questionId
+    ) external view onlyValid(questionId) returns (Question memory) {
         return _questions[questionId];
     }
 
@@ -179,23 +177,50 @@ contract Cryptopati is Ownable, Pausable {
             multiplier,
             timeDuration,
             fixedReward,
-            true
+            true,
+            false
         );
 
         emit QuestionAdd(questionId);
     }
 
-    function unlockQuestion(string calldata questionId, uint256 commitAmount)
-        external
-        whenNotPaused
-        onlyValid(questionId)
-    {}
+    function unlockQuestion(
+        string calldata questionId,
+        uint256 commitAmount
+    ) external whenNotPaused onlyValid(questionId) {
+        require(
+            accuCoin.balanceOf(msg.sender) > commitAmount,
+            "Cryptopati: Insufficient Balance"
+        );
+        userCommitAmount[msg.sender] = commitAmount;
+        accuCoin.transfer(platform, userCommitAmount[msg.sender]);
+        _questions[questionId].unlocked == true;
 
+        emit UnlockQuestion(msg.sender, questionId, commitAmount);
+    }
+
+    /*function to check answer for question and transfer reward if answer is correct
+     */
     function answerQuestion(
+        address user,
         string calldata questionId,
         bool result,
-        uint256 submitTimestamp
+        uint256 submitTimestamp,
+        uint256 rewardAmount
     ) external onlyValid(questionId) {
         require(msg.sender == platform, "Cryptopati: only platform");
+        require(
+            _questions[questionId].unlocked,
+            "Cryptopati: Question not unlocked"
+        );
+        submitTimestamp = block.timestamp;
+        if (result) {
+            rewardAmount =
+                userCommitAmount[user] *
+                _questions[questionId].multiplier;
+            accuCoin.transferFrom(platform, user, rewardAmount);
+        }
+
+        emit WinQuestion(user, questionId, rewardAmount);
     }
 }
