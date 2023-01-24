@@ -26,7 +26,7 @@ contract Cryptopati is Ownable, Pausable {
 
     mapping(address => uint256) public userLastClaim; // Timestamp at which user claimed token last
 
-    mapping(address => uint256) public userCommitAmount;
+    mapping(address => uint256) public userCommitAmount; //stores the commitAmount for each user
 
     /* Events */
     event QuestionAdd(string questionId);
