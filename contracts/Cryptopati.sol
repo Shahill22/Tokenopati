@@ -14,6 +14,7 @@ contract Cryptopati is Ownable, Pausable {
     uint256 public replenishAmount = 10 ether; // Amount that can be claimed when replenished
     uint256 public replenishDuration = 4 hours; // Duration after which tokens will be replenished
     bool public isReplenishable = true; // Boolean indicating whether the claiming for tokens is replenishable
+    uint256 public rewardAmount;
 
     struct Question {
         uint256 multiplier;
@@ -176,7 +177,6 @@ contract Cryptopati is Ownable, Pausable {
         _questions[questionId] = Question(
             multiplier,
             timeDuration,
-            fixedReward,
             true,
             false
         );
@@ -210,21 +210,24 @@ contract Cryptopati is Ownable, Pausable {
      * @param questionId ID of the question
      * @param result boolean value
      * @param submitTimestamp time at which answer was submitted
-     * @param rewardAmount Reward Amount for user
      */
     function answerQuestion(
         address user,
         string calldata questionId,
         bool result,
-        uint256 submitTimestamp,
-        uint256 rewardAmount
+        uint256 submitTimestamp
     ) external onlyValid(questionId) {
         require(msg.sender == platform, "Cryptopati: only platform");
         require(
             _questions[questionId].unlocked,
             "Cryptopati: Question not unlocked"
         );
-        submitTimestamp = block.timestamp;
+        require(
+            submitTimestamp <= _questions[questionId].timeDuration &&
+                submitTimestamp == block.timestamp,
+            "Cryptopati: Out of Time"
+        );
+        //require(submitTimestamp == block.timestamp,"Cryptopati:Invalid Timestamp");
         if (result) {
             rewardAmount =
                 userCommitAmount[user][questionId] *
