@@ -18,7 +18,7 @@ contract Cryptopati is Ownable, Pausable {
     struct Question {
         uint256 multiplier;
         uint256 timeDuration;
-        uint256 fixedReward;
+        // uint256 fixedReward;
         bool exist;
         bool unlocked;
     }
@@ -26,7 +26,7 @@ contract Cryptopati is Ownable, Pausable {
 
     mapping(address => uint256) public userLastClaim; // Timestamp at which user claimed token last
 
-    mapping(address => uint256) public userCommitAmount; //stores the commitAmount for each user
+    mapping(address => mapping(string => uint256)) public userCommitAmount; //stores the commitAmount for each question
 
     /* Events */
     event QuestionAdd(string questionId);
@@ -184,6 +184,11 @@ contract Cryptopati is Ownable, Pausable {
         emit QuestionAdd(questionId);
     }
 
+    /**
+     * @notice This method is used to unlock the question
+     * @param questionId ID of the question
+     * @param commitAmount Amount user invests to unlock the question
+     */
     function unlockQuestion(
         string calldata questionId,
         uint256 commitAmount
@@ -192,14 +197,20 @@ contract Cryptopati is Ownable, Pausable {
             accuCoin.balanceOf(msg.sender) > commitAmount,
             "Cryptopati: Insufficient Balance"
         );
-        userCommitAmount[msg.sender] = commitAmount;
-        accuCoin.transfer(platform, userCommitAmount[msg.sender]);
+        userCommitAmount[msg.sender][questionId] = commitAmount;
+        accuCoin.transfer(platform, userCommitAmount[msg.sender][questionId]);
         _questions[questionId].unlocked == true;
 
         emit UnlockQuestion(msg.sender, questionId, commitAmount);
     }
 
-    /*function to check answer for question and transfer reward if answer is correct
+    /**
+     * @notice This method is used to check answer for question and transfer reward if answer is correct
+     * @param user User Address
+     * @param questionId ID of the question
+     * @param result boolean value
+     * @param submitTimestamp time at which answer was submitted
+     * @param rewardAmount Reward Amount for user
      */
     function answerQuestion(
         address user,
@@ -216,7 +227,7 @@ contract Cryptopati is Ownable, Pausable {
         submitTimestamp = block.timestamp;
         if (result) {
             rewardAmount =
-                userCommitAmount[user] *
+                userCommitAmount[user][questionId] *
                 _questions[questionId].multiplier;
             accuCoin.transferFrom(platform, user, rewardAmount);
         }
