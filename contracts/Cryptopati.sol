@@ -14,17 +14,18 @@ contract Cryptopati is Ownable, Pausable {
     uint256 public replenishAmount = 10 ether; // Amount that can be claimed when replenished
     uint256 public replenishDuration = 4 hours; // Duration after which tokens will be replenished
     bool public isReplenishable = true; // Boolean indicating whether the claiming for tokens is replenishable
-
+    uint256 private multiplierAmount; //multiplier amount of the users invested token to a question
     struct Question {
         uint256 multiplier;
         uint256 timeDuration;
-        uint256 fixedReward;
         bool exist;
+        bool unlocked;
     }
+
     mapping(string => Question) private _questions; // Question ID => Question {}
 
     mapping(address => uint256) public userLastClaim; // Timestamp at which user claimed token last
-
+    mapping(address => mapping(string => uint256)) public userCommitAmount; //stores the commitAmount for each question
     /* Events */
     event QuestionAdd(string questionId);
     event ClaimTokens(address indexed user, uint256 amount);
@@ -139,11 +140,9 @@ contract Cryptopati is Ownable, Pausable {
      * @notice This method is used to check if a question exist
      * @param questionId ID of the question
      */
-    function questionExist(string calldata questionId)
-        public
-        view
-        returns (bool)
-    {
+    function questionExist(
+        string calldata questionId
+    ) public view returns (bool) {
         return _questions[questionId].exist;
     }
 
@@ -151,12 +150,9 @@ contract Cryptopati is Ownable, Pausable {
      * @notice This method is used to get question details
      * @param questionId ID of the question
      */
-    function getQuestion(string calldata questionId)
-        external
-        view
-        onlyValid(questionId)
-        returns (Question memory)
-    {
+    function getQuestion(
+        string calldata questionId
+    ) external view onlyValid(questionId) returns (Question memory) {
         return _questions[questionId];
     }
 
@@ -167,8 +163,7 @@ contract Cryptopati is Ownable, Pausable {
     function addQuestion(
         string calldata questionId,
         uint256 multiplier,
-        uint256 timeDuration,
-        uint256 fixedReward
+        uint256 timeDuration
     ) external onlyOwner {
         require(
             !_questions[questionId].exist,
@@ -178,24 +173,75 @@ contract Cryptopati is Ownable, Pausable {
         _questions[questionId] = Question(
             multiplier,
             timeDuration,
-            fixedReward,
-            true
+            true,
+            false
         );
 
         emit QuestionAdd(questionId);
     }
 
-    function unlockQuestion(string calldata questionId, uint256 commitAmount)
-        external
-        whenNotPaused
-        onlyValid(questionId)
-    {}
+    /**
+     * @notice This method is used to unlock the question
+     * @param questionId ID of the question
+     * @param commitAmount Amount user invests to unlock the question
+     */
+    function unlockQuestion(
+        string calldata questionId,
+        uint256 commitAmount
+    ) external whenNotPaused onlyValid(questionId) {
+        require(
+            _questions[questionId].unlocked,
+            "Cryptopati: Question already unlocked"
+        );
+        require(
+            accuCoin.balanceOf(msg.sender) > commitAmount,
+            "Cryptopati: Insufficient Balance"
+        );
+        userCommitAmount[msg.sender][questionId] = commitAmount;
+        accuCoin.transfer(platform, userCommitAmount[msg.sender][questionId]);
+        _questions[questionId].unlocked == true;
 
+        emit UnlockQuestion(msg.sender, questionId, commitAmount);
+    }
+
+    /**
+     * @notice This method is used to transfer reward if answer is correct
+     * @param questionId ID of the question
+     * @param result boolean value
+     * @param _addressUser address of the user to sent reward
+     * @param submitTimestamp time at which answer was submitted
+     */
     function answerQuestion(
         string calldata questionId,
         bool result,
+        address _addressUser,
         uint256 submitTimestamp
     ) external onlyValid(questionId) {
         require(msg.sender == platform, "Cryptopati: only platform");
+
+        require(
+            block.timestamp - submitTimestamp <=
+                _questions[questionId].timeDuration,
+            "Cryptopati: Out of Time"
+        );
+        if (result == true) {
+            multiplierAmount =
+                (userCommitAmount[msg.sender][questionId] *
+                    _questions[questionId].multiplier) -
+                userCommitAmount[msg.sender][questionId];
+
+            accuCoin.mint(_addressUser, multiplierAmount);
+            accuCoin.transferFrom(
+                platform,
+                _addressUser,
+                userCommitAmount[msg.sender][questionId]
+            );
+        }
+
+        emit WinQuestion(
+            _addressUser,
+            questionId,
+            userCommitAmount[msg.sender][questionId] + multiplierAmount
+        );
     }
 }
