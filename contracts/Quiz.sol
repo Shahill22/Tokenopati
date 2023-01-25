@@ -31,7 +31,7 @@ contract Quiz is Ownable {
         treasury = _treasury;
     }
 
-    function initailTokensToParticipate(
+    function initialTokensToParticipate(
         address _player,
         uint256 _amount
     ) external payable onlyOwner {
