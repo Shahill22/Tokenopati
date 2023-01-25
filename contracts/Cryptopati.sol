@@ -14,7 +14,7 @@ contract Cryptopati is Ownable, Pausable {
     uint256 public replenishAmount = 10 ether; // Amount that can be claimed when replenished
     uint256 public replenishDuration = 4 hours; // Duration after which tokens will be replenished
     bool public isReplenishable = true; // Boolean indicating whether the claiming for tokens is replenishable
-    uint256 public rewardAmount;
+    uint256 private rewardAmount;
 
     struct Question {
         uint256 multiplier;
@@ -22,6 +22,7 @@ contract Cryptopati is Ownable, Pausable {
         // uint256 fixedReward;
         bool exist;
         bool unlocked;
+        bool answered;
     }
     mapping(string => Question) private _questions; // Question ID => Question {}
 
@@ -178,6 +179,7 @@ contract Cryptopati is Ownable, Pausable {
             multiplier,
             timeDuration,
             true,
+            false,
             false
         );
 
@@ -194,6 +196,10 @@ contract Cryptopati is Ownable, Pausable {
         uint256 commitAmount
     ) external whenNotPaused onlyValid(questionId) {
         require(
+            !_questions[questionId].unlocked,
+            "Cryptopati: Question already unlocked"
+        );
+        require(
             accuCoin.balanceOf(msg.sender) > commitAmount,
             "Cryptopati: Insufficient Balance"
         );
@@ -206,35 +212,32 @@ contract Cryptopati is Ownable, Pausable {
 
     /**
      * @notice This method is used to check answer for question and transfer reward if answer is correct
-     * @param user User Address
      * @param questionId ID of the question
      * @param result boolean value
      * @param submitTimestamp time at which answer was submitted
      */
     function answerQuestion(
-        address user,
         string calldata questionId,
         bool result,
         uint256 submitTimestamp
     ) external onlyValid(questionId) {
-        require(msg.sender == platform, "Cryptopati: only platform");
         require(
-            _questions[questionId].unlocked,
-            "Cryptopati: Question not unlocked"
+            !_questions[questionId].answered,
+            "Cryptopati: Question already answered"
         );
         require(
             submitTimestamp <= _questions[questionId].timeDuration &&
                 submitTimestamp == block.timestamp,
             "Cryptopati: Out of Time"
         );
-        //require(submitTimestamp == block.timestamp,"Cryptopati:Invalid Timestamp");
         if (result) {
             rewardAmount =
-                userCommitAmount[user][questionId] *
+                userCommitAmount[msg.sender][questionId] *
                 _questions[questionId].multiplier;
-            accuCoin.transferFrom(platform, user, rewardAmount);
+            accuCoin.transferFrom(platform, msg.sender, rewardAmount);
         }
+        _questions[questionId].answered = true;
 
-        emit WinQuestion(user, questionId, rewardAmount);
+        emit WinQuestion(msg.sender, questionId, rewardAmount);
     }
 }
