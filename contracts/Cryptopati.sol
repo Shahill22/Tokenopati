@@ -21,9 +21,15 @@ contract Cryptopati is Ownable, Pausable {
         bool exist;
         bool unlocked;
     }
+    struct User {
+        bool unlocked;
+        uint256 totalCommitAmount;
+        uint256 totalAmountCollected;
+    }
 
     mapping(string => Question) private _questions; // Question ID => Question {}
-
+    mapping(address => User) public userInfo;
+    mapping(address => mapping(string => User)) public _userToQuestionId;
     mapping(address => uint256) public userLastClaim; // Timestamp at which user claimed token last
     mapping(address => mapping(string => uint256)) public userCommitAmount; //stores the commitAmount for each question
     /* Events */
@@ -190,16 +196,18 @@ contract Cryptopati is Ownable, Pausable {
         uint256 commitAmount
     ) external whenNotPaused onlyValid(questionId) {
         require(
-            _questions[questionId].unlocked,
+            _userToQuestionId[msg.sender][questionId].unlocked,
             "Cryptopati: Question already unlocked"
         );
-        require(
-            accuCoin.balanceOf(msg.sender) > commitAmount,
-            "Cryptopati: Insufficient Balance"
-        );
+
         userCommitAmount[msg.sender][questionId] = commitAmount;
-        accuCoin.transfer(platform, userCommitAmount[msg.sender][questionId]);
-        _questions[questionId].unlocked == true;
+        userInfo[msg.sender].totalCommitAmount += commitAmount;
+        accuCoin.transferFrom(
+            msg.sender,
+            platform,
+            userCommitAmount[msg.sender][questionId]
+        );
+        _userToQuestionId[msg.sender][questionId].unlocked = true;
 
         emit UnlockQuestion(msg.sender, questionId, commitAmount);
     }
@@ -224,6 +232,11 @@ contract Cryptopati is Ownable, Pausable {
                 _questions[questionId].timeDuration,
             "Cryptopati: Out of Time"
         );
+        require(
+            _userToQuestionId[_addressUser][questionId].unlocked == true,
+            "Crptopati: Question not unlocked"
+        );
+
         if (result == true) {
             multiplierAmount =
                 (userCommitAmount[msg.sender][questionId] *
@@ -231,11 +244,13 @@ contract Cryptopati is Ownable, Pausable {
                 userCommitAmount[msg.sender][questionId];
 
             accuCoin.mint(_addressUser, multiplierAmount);
-            accuCoin.transferFrom(
-                platform,
+            accuCoin.transfer(
                 _addressUser,
                 userCommitAmount[msg.sender][questionId]
             );
+            userInfo[_addressUser].totalAmountCollected += (userCommitAmount[
+                msg.sender
+            ][questionId] + multiplierAmount);
         }
 
         emit WinQuestion(
