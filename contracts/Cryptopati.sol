@@ -19,19 +19,24 @@ contract Cryptopati is Ownable, Pausable {
         uint256 multiplier;
         uint256 timeDuration;
         bool exist;
-        bool unlocked;
     }
+    struct UserToQuestionId {
+        bool answered;
+        uint256 unlockTimestamp;
+        uint256 commitAmount;
+        uint256 collectedAmount;
+    }
+
     struct User {
-        bool unlocked;
         uint256 totalCommitAmount;
         uint256 totalAmountCollected;
     }
 
     mapping(string => Question) private _questions; // Question ID => Question {}
     mapping(address => User) public userInfo;
-    mapping(address => mapping(string => User)) public _userToQuestionId;
+    mapping(address => mapping(string => UserToQuestionId))
+        public userToQuestionId;
     mapping(address => uint256) public userLastClaim; // Timestamp at which user claimed token last
-    mapping(address => mapping(string => uint256)) public userCommitAmount; //stores the commitAmount for each question
     /* Events */
     event QuestionAdd(string questionId);
     event ClaimTokens(address indexed user, uint256 amount);
@@ -176,12 +181,7 @@ contract Cryptopati is Ownable, Pausable {
             "Cryptopati: questionId already added"
         );
 
-        _questions[questionId] = Question(
-            multiplier,
-            timeDuration,
-            true,
-            false
-        );
+        _questions[questionId] = Question(multiplier, timeDuration, true);
 
         emit QuestionAdd(questionId);
     }
@@ -196,18 +196,16 @@ contract Cryptopati is Ownable, Pausable {
         uint256 commitAmount
     ) external whenNotPaused onlyValid(questionId) {
         require(
-            _userToQuestionId[msg.sender][questionId].unlocked == false,
+            userToQuestionId[msg.sender][questionId].unlockTimestamp == 0,
             "Cryptopati: Question already unlocked"
         );
 
-        userCommitAmount[msg.sender][questionId] += commitAmount;
+        userToQuestionId[msg.sender][questionId].commitAmount = commitAmount;
+        userToQuestionId[msg.sender][questionId].unlockTimestamp = block
+            .timestamp;
         userInfo[msg.sender].totalCommitAmount += commitAmount;
-        accuCoin.transferFrom(
-            msg.sender,
-            platform,
-            userCommitAmount[msg.sender][questionId]
-        );
-        _userToQuestionId[msg.sender][questionId].unlocked = true;
+
+        accuCoin.transferFrom(msg.sender, address(this), commitAmount);
 
         emit UnlockQuestion(msg.sender, questionId, commitAmount);
     }
@@ -227,30 +225,36 @@ contract Cryptopati is Ownable, Pausable {
     ) external onlyValid(questionId) {
         require(msg.sender == platform, "Cryptopati: only platform");
         require(
-            _userToQuestionId[_addressUser][questionId].unlocked == true,
-            "Crptopati: Question not unlocked"
+            userToQuestionId[_addressUser][questionId].unlockTimestamp != 0,
+            "Cryptopati: Question not unlocked"
+        );
+        require(
+            !userToQuestionId[_addressUser][questionId].answered,
+            "Cryptopati: Question already answered"
         );
 
-        if (result == true) {
-            multiplierAmount =
-                (userCommitAmount[_addressUser][questionId] *
-                    _questions[questionId].multiplier) -
-                userCommitAmount[_addressUser][questionId];
+        require(
+            submitTimestamp -
+                userToQuestionId[_addressUser][questionId].unlockTimestamp <=
+                _questions[questionId].timeDuration,
+            "Cryptopati: Out of time"
+        );
 
+        userToQuestionId[_addressUser][questionId].answered = true;
+        if (result) {
+            uint256 userCommitAmount = userToQuestionId[_addressUser][
+                questionId
+            ].commitAmount;
+            uint256 userCollectedAmount = userCommitAmount *
+                _questions[questionId].multiplier;
+            multiplierAmount = userCollectedAmount - userCommitAmount;
+            userToQuestionId[_addressUser][questionId]
+                .collectedAmount = userCollectedAmount;
+
+            userInfo[_addressUser].totalAmountCollected += userCollectedAmount;
             accuCoin.mint(_addressUser, multiplierAmount);
-            accuCoin.transfer(
-                _addressUser,
-                userCommitAmount[_addressUser][questionId]
-            );
-            userInfo[_addressUser].totalAmountCollected += (userCommitAmount[
-                _addressUser
-            ][questionId] + multiplierAmount);
+            accuCoin.transfer(_addressUser, userCommitAmount);
+            emit WinQuestion(_addressUser, questionId, userCollectedAmount);
         }
-
-        emit WinQuestion(
-            _addressUser,
-            questionId,
-            userCommitAmount[_addressUser][questionId] + multiplierAmount
-        );
     }
 }

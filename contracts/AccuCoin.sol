@@ -86,9 +86,10 @@ contract AccuCoin is ERC20, AccessControl {
         address to,
         uint256
     ) internal override {
-        require(
-            _isWhitelisted[from] || _isWhitelisted[to],
-            "AccuCoin: only whitelisted can transfer"
-        );
+        if (from != address(0))
+            require(
+                _isWhitelisted[from] || _isWhitelisted[to],
+                "AccuCoin: only whitelisted can transfer"
+            );
     }
 }
