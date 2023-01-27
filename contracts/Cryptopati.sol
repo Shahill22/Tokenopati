@@ -196,11 +196,11 @@ contract Cryptopati is Ownable, Pausable {
         uint256 commitAmount
     ) external whenNotPaused onlyValid(questionId) {
         require(
-            _userToQuestionId[msg.sender][questionId].unlocked,
+            _userToQuestionId[msg.sender][questionId].unlocked == false,
             "Cryptopati: Question already unlocked"
         );
 
-        userCommitAmount[msg.sender][questionId] = commitAmount;
+        userCommitAmount[msg.sender][questionId] += commitAmount;
         userInfo[msg.sender].totalCommitAmount += commitAmount;
         accuCoin.transferFrom(
             msg.sender,
