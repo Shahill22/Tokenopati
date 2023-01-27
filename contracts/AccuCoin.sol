@@ -37,10 +37,9 @@ contract AccuCoin is ERC20, AccessControl {
      * @dev Only DEFAULT_ADMIN can call this function
      * @param _address Address of the wallet
      */
-    function addToWhitelist(address _address)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function addToWhitelist(
+        address _address
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _isWhitelisted[_address] = true;
     }
 
@@ -49,10 +48,9 @@ contract AccuCoin is ERC20, AccessControl {
      * @dev Only DEFAULT_ADMIN can call this function
      * @param _address Address of the wallet
      */
-    function removeFromWhitelist(address _address)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function removeFromWhitelist(
+        address _address
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _isWhitelisted[_address] = false;
     }
 
@@ -61,10 +59,9 @@ contract AccuCoin is ERC20, AccessControl {
      * @dev Only DEFAULT_ADMIN can call this function
      * @param _address Address of the wallet
      */
-    function addMinterRole(address _address)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function addMinterRole(
+        address _address
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _grantRole(MINTER_ROLE, _address);
     }
 
@@ -73,10 +70,9 @@ contract AccuCoin is ERC20, AccessControl {
      * @dev Only DEFAULT_ADMIN can call this function
      * @param _address Address of the wallet
      */
-    function revokeMinterRole(address _address)
-        public
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function revokeMinterRole(
+        address _address
+    ) public onlyRole(DEFAULT_ADMIN_ROLE) {
         _revokeRole(MINTER_ROLE, _address);
     }
 

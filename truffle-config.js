@@ -20,7 +20,7 @@ module.exports = {
       provider: () =>
         new HDWalletProvider(
           mnemonic,
-          `https://goerli.infura.io/ws/v3/${infuraProjectId}`
+          `wss://goerli.infura.io/ws/v3/${infuraProjectId}`
         ),
       network_id: 5,
       confirmations: 2,
@@ -115,7 +115,5 @@ module.exports = {
   plugins: ["truffle-plugin-verify"],
   api_keys: {
     etherscan: etherscanApiKey,
-    snowtrace: snowtraceApiKey,
-    bscscan: bscscanApiKey,
   },
 };
