@@ -200,7 +200,7 @@ contract Cryptopati is Ownable, Pausable {
             "Cryptopati: Question already unlocked"
         );
 
-        userCommitAmount[msg.sender][questionId] = commitAmount;
+        userCommitAmount[msg.sender][questionId] += commitAmount;
         userInfo[msg.sender].totalCommitAmount += commitAmount;
         accuCoin.transferFrom(
             msg.sender,
