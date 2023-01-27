@@ -226,12 +226,6 @@ contract Cryptopati is Ownable, Pausable {
         uint256 submitTimestamp
     ) external onlyValid(questionId) {
         require(msg.sender == platform, "Cryptopati: only platform");
-
-        require(
-            block.timestamp - submitTimestamp <=
-                _questions[questionId].timeDuration,
-            "Cryptopati: Out of Time"
-        );
         require(
             _userToQuestionId[_addressUser][questionId].unlocked == true,
             "Crptopati: Question not unlocked"
