@@ -233,24 +233,24 @@ contract Cryptopati is Ownable, Pausable {
 
         if (result == true) {
             multiplierAmount =
-                (userCommitAmount[msg.sender][questionId] *
+                (userCommitAmount[_addressUser][questionId] *
                     _questions[questionId].multiplier) -
-                userCommitAmount[msg.sender][questionId];
+                userCommitAmount[_addressUser][questionId];
 
             accuCoin.mint(_addressUser, multiplierAmount);
             accuCoin.transfer(
                 _addressUser,
-                userCommitAmount[msg.sender][questionId]
+                userCommitAmount[_addressUser][questionId]
             );
             userInfo[_addressUser].totalAmountCollected += (userCommitAmount[
-                msg.sender
+                _addressUser
             ][questionId] + multiplierAmount);
         }
 
         emit WinQuestion(
             _addressUser,
             questionId,
-            userCommitAmount[msg.sender][questionId] + multiplierAmount
+            userCommitAmount[_addressUser][questionId] + multiplierAmount
         );
     }
 }
