@@ -15,27 +15,30 @@ contract Cryptopati is Ownable, Pausable {
     uint256 public replenishDuration = 4 hours; // Duration after which tokens will be replenished
     bool public isReplenishable = true; // Boolean indicating whether the claiming for tokens is replenishable
     uint256 private multiplierAmount; //multiplier amount of the users invested token to a question
+
     struct Question {
         uint256 multiplier;
         bool exist;
     }
+    mapping(string => Question) private _questions; // Question ID => Question {}
+
     struct UserToQuestionId {
         bool answered;
         uint256 unlockTimestamp;
         uint256 commitAmount;
         uint256 collectedAmount;
     }
+    mapping(address => mapping(string => UserToQuestionId))
+        public userToQuestionId;
 
     struct User {
         uint256 totalCommitAmount;
         uint256 totalAmountCollected;
     }
-
-    mapping(string => Question) private _questions; // Question ID => Question {}
     mapping(address => User) public userInfo;
-    mapping(address => mapping(string => UserToQuestionId))
-        public userToQuestionId;
+
     mapping(address => uint256) public userLastClaim; // Timestamp at which user claimed token last
+
     /* Events */
     event QuestionAdd(string questionId);
     event ClaimTokens(address indexed user, uint256 amount);
@@ -150,9 +153,11 @@ contract Cryptopati is Ownable, Pausable {
      * @notice This method is used to check if a question exist
      * @param questionId ID of the question
      */
-    function questionExist(
-        string calldata questionId
-    ) public view returns (bool) {
+    function questionExist(string calldata questionId)
+        public
+        view
+        returns (bool)
+    {
         return _questions[questionId].exist;
     }
 
@@ -160,9 +165,12 @@ contract Cryptopati is Ownable, Pausable {
      * @notice This method is used to get question details
      * @param questionId ID of the question
      */
-    function getQuestion(
-        string calldata questionId
-    ) external view onlyValid(questionId) returns (Question memory) {
+    function getQuestion(string calldata questionId)
+        external
+        view
+        onlyValid(questionId)
+        returns (Question memory)
+    {
         return _questions[questionId];
     }
 
@@ -170,10 +178,10 @@ contract Cryptopati is Ownable, Pausable {
      * @notice This method is used to get question details
      * @param questionId ID of the question
      */
-    function addQuestion(
-        string calldata questionId,
-        uint256 multiplier
-    ) external onlyOwner {
+    function addQuestion(string calldata questionId, uint256 multiplier)
+        external
+        onlyOwner
+    {
         require(
             !_questions[questionId].exist,
             "Cryptopati: questionId already added"
@@ -189,10 +197,11 @@ contract Cryptopati is Ownable, Pausable {
      * @param questionId ID of the question
      * @param commitAmount Amount user invests to unlock the question
      */
-    function unlockQuestion(
-        string calldata questionId,
-        uint256 commitAmount
-    ) external whenNotPaused onlyValid(questionId) {
+    function unlockQuestion(string calldata questionId, uint256 commitAmount)
+        external
+        whenNotPaused
+        onlyValid(questionId)
+    {
         require(
             userToQuestionId[msg.sender][questionId].unlockTimestamp == 0,
             "Cryptopati: Question already unlocked"
@@ -215,21 +224,20 @@ contract Cryptopati is Ownable, Pausable {
      * @param questionId ID of the question
      * @param _addressUser address of the user to sent reward
      */
-    function winQuestion(
-        string calldata questionId,
-        address _addressUser
-    ) external onlyValid(questionId) {
+    function winQuestion(string calldata questionId, address _addressUser)
+        external
+        onlyValid(questionId)
+    {
         require(msg.sender == platform, "Cryptopati: only platform");
         require(
             userToQuestionId[_addressUser][questionId].unlockTimestamp != 0,
             "Cryptopati: Question not unlocked"
         );
         require(
-            !userToQuestionId[_addressUser][questionId].answered,
-            "Cryptopati: Question already answered"
+            userToQuestionId[_addressUser][questionId].collectedAmount == 0,
+            "Cryptopati: Question already processed"
         );
 
-        userToQuestionId[_addressUser][questionId].answered = true;
         uint256 userCommitAmount = userToQuestionId[_addressUser][questionId]
             .commitAmount;
         uint256 userCollectedAmount = userCommitAmount *
