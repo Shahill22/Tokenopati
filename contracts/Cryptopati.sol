@@ -9,9 +9,9 @@ import "./interfaces/IAccuCoin.sol";
 contract Cryptopati is Ownable, Pausable {
     IAccuCoin public accuCoin; // Address of the Accu Coin
     address public platform; // Platform wallet manages certain functions
-    uint256 public initialAmount = 100 ether; // Amount that can be claimed initially
+    uint256 public initialAmount = 100; // Amount that can be claimed initially
     bool public isInitialClaimable = true; // Boolean indicating whether the initial claiming for tokens is open
-    uint256 public replenishAmount = 10 ether; // Amount that can be claimed when replenished
+    uint256 public replenishAmount = 10; // Amount that can be claimed when replenished
     uint256 public replenishDuration = 4 hours; // Duration after which tokens will be replenished
     bool public isReplenishable = true; // Boolean indicating whether the claiming for tokens is replenishable
     uint256 private multiplierAmount; //multiplier amount of the users invested token to a question
