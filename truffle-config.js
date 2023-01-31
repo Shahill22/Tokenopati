@@ -3,7 +3,7 @@ require("dotenv").config();
 
 const mnemonic = process.env.MNEMONIC;
 const infuraProjectId = process.env.INFURA_PROJECT_ID;
-const etherscanApiKey = process.env.ETHERSCAN_API_KEY;
+const polygonscanApiKey = process.env.POLYGONSCAN_API_KEY;
 const snowtraceApiKey = process.env.SNOWTRACE_API_KEY;
 const bscscanApiKey = process.env.BSCSCAN_API_KEY;
 
@@ -15,6 +15,22 @@ module.exports = {
       network_id: "*",
       gas: 6721975,
     },
+    polygonMumbai: {
+      provider: function () {
+        return new HDWalletProvider({
+          mnemonic: {
+            phrase: mnemonic,
+          },
+          providerOrUrl: `https://rpc-mumbai.maticvigil.com/v1/1ee06372b8094170ccf6da077d86af194983e18f`,
+          chainId: 80001,
+        });
+      },
+      network_id: 80001,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      skipDryRun: true,
+      chainId: 80001,
+    },
     goerli: {
       networkCheckTimeout: 60000,
       provider: () =>
@@ -23,7 +39,7 @@ module.exports = {
           `wss://goerli.infura.io/ws/v3/${infuraProjectId}`
         ),
       network_id: 5,
-      confirmations: 2,
+      confirmations: 1,
       timeoutBlocks: 1000,
       skipDryRun: true,
     },
@@ -114,6 +130,6 @@ module.exports = {
   },
   plugins: ["truffle-plugin-verify"],
   api_keys: {
-    etherscan: etherscanApiKey,
+    polygonscan: polygonscanApiKey,
   },
 };
