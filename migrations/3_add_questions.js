@@ -14,11 +14,12 @@ module.exports = async function (deployer, network, accounts) {
 
     ]
 
-    questionSetList.map(async ({ from, to, multiplier }) => {
+    await Promise.all(questionSetList.map(async ({ from, to, multiplier }) => {
         for (let questionCounter = from; questionCounter <= to; questionCounter++) {
             let questionId = questionCounter.toString()
+            console.log(`QuestionId : ${questionId}, Multiplier : ${multiplier}`)
             await cryptopati.addQuestion(questionId, multiplier);
         }
-    })
+    }))
 
 };
