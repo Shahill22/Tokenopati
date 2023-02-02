@@ -12,7 +12,7 @@ contract Cryptopati is Ownable, Pausable {
     uint256 public initialAmount = 100; // Amount that can be claimed initially
     bool public isInitialClaimable = true; // Boolean indicating whether the initial claiming for tokens is open
     uint256 public replenishAmount = 10; // Amount that can be claimed when replenished
-    uint256 public replenishDuration = 4 hours; // Duration after which tokens will be replenished
+    uint256 public replenishDuration = 1 hours; // Duration after which tokens will be replenished
     bool public isReplenishable = true; // Boolean indicating whether the claiming for tokens is replenishable
     uint256 private multiplierAmount; //multiplier amount of the users invested token to a question
 
